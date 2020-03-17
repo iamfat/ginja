@@ -37,7 +37,7 @@ if sys.argv[-1] == 'publish':
 required = [
     'python-dotenv>=0.8.2',
     'click>=6.7',
-    'Jinjia2>=2.11'
+    'jinjia2'
 ]
 
 setup(
