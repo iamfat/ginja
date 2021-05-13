@@ -37,7 +37,9 @@ if sys.argv[-1] == 'publish':
 required = [
     'python-dotenv>=0.8.2',
     'click>=6.7',
-    'jinja2'
+    'Jinja2',
+    'toml',
+    'PyYAML'
 ]
 
 setup(
