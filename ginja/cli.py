@@ -12,27 +12,32 @@ from dotenv import dotenv_values
 dot_jinjas = ('.jinja', '.jinja2', '.j2')
 dot_multiples = ('.multiple.yml', '.multiple.yaml')
 
+def jinja_convert(filepath:str, os_env:dict):
+    converted = ''
+    with open(filepath, encoding='utf8') as f:
+        converted = jinja2.Template(f.read()).render(os_env)
+    return converted
 
-def load_env(filepaths, target_vars, inject_env):
-    env_content = inject_env
-    structed_vars = {}
+def load_env(filepaths, target_vars, os_env):
     for filepath in filepaths:
-        ext = os.path.splitext(filepath)[1]
+        filename, ext = os.path.splitext(filepath)
+        content = ''
+        if ext in dot_jinjas:
+            content = jinja_convert(filepath, os_env)
+            ext = os.path.splitext(filename)[1]
+        else:
+            with open(filepath, encoding='utf8') as f:
+                content = f.read()
+
+        vars = {}
         if ext == '.env':
-            with open(filepath, encoding='utf8') as f:
-                env_content += f.read()
+            vars = dict(dotenv_values(io.StringIO(content), encoding='utf8'))
         elif ext == '.toml':
-            with open(filepath, encoding='utf8') as f:
-                toml_vars = toml.load(f)
-                structed_vars.update(toml_vars)
+            vars = toml.load(io.StringIO(content))
         elif ext == '.yml' or ext == '.yaml':
-            with open(filepath, encoding='utf8') as f:
-                yaml_vars = yaml.load(f, Loader=yaml.FullLoader)
-                structed_vars.update(yaml_vars)
-    env_vars = dict(dotenv_values(
-        stream=io.StringIO(env_content), encoding='utf8'))
-    target_vars.update(env_vars)
-    target_vars.update(structed_vars)
+            vars = yaml.load(content, Loader=yaml.FullLoader)
+        target_vars.update(vars)
+
     return target_vars
 
 
@@ -42,9 +47,9 @@ def convert_file(src_file, dst_file, env_vars):
         os.makedirs(dst_dir)
     jinja_dst_file, ext = os.path.splitext(dst_file)
     if ext.lower() in dot_jinjas:
-        content = open(src_file, 'r').read()
-        output = jinja2.Template(content).render(env_vars)
-        open(jinja_dst_file, 'w+').write(output)
+        output = jinja_convert(src_file, env_vars)
+        with open(jinja_dst_file, 'w+') as f:
+            f.write(output)
         click.echo('[J] ' + jinja_dst_file)
     else:
         shutil.copyfile(src_file, dst_file)
@@ -64,18 +69,13 @@ def convert_file(src_file, dst_file, env_vars):
 def cli(env, src, dst):
     env_vars = {}
 
-    inject_env = ''
-    for key, value in os.environ.items():
-        if key.startswith("GJ_"):
-            inject_env += "{key}={value}\n".format(key=key[3:], value=value)
-
     if os.path.isdir(env):
         for parent, dirnames, filenames in os.walk(env):
             filenames.sort()
             load_env(map(lambda f: os.path.join(
-                parent, f), filenames), env_vars, inject_env)
+                parent, f), filenames), env_vars, os.environ)
     elif os.path.isfile(env):
-        load_env([env], env_vars, inject_env)
+        load_env([env], env_vars, os.environ)
 
     path_var_regex = re.compile(r'\$(\w+)')
     multiple_vars = {}
@@ -86,18 +86,11 @@ def cli(env, src, dst):
                 jinja_filename, ext = os.path.splitext(filename)
                 if ext.lower() in dot_jinjas:
                     if jinja_filename in dot_multiples:
-                        with open(src_file, encoding='utf8') as f:
-                            vars = yaml.load(jinja2.Template(
-                                f.read()).render(env_vars), Loader=yaml.FullLoader)
-                            multiple_vars[subdir] = vars
+                        multiple_vars[subdir] = yaml.load(jinja_convert(src_file, env_vars), Loader=yaml.FullLoader)
                         break
                 elif filename in dot_multiples:
                     with open(src_file, encoding='utf8') as f:
-                        jinja_content = f.read()
-                        yaml_content = jinja2.Template(
-                            jinja_content).render(env_vars)
-                        vars = yaml.load(yaml_content, Loader=yaml.FullLoader)
-                        multiple_vars[subdir] = vars
+                        multiple_vars[subdir] = yaml.load(f, Loader=yaml.FullLoader)
                     break
 
     for subdir, dirnames, filenames in os.walk(src):
