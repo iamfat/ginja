@@ -118,10 +118,11 @@ def cli(env, src, dst):
                     if idx >= len(subdir_multiples):
                         _convert(vars)
                         return
-                    for v in subdir_multiples[idx]:
-                        n_vars = vars.copy()
-                        n_vars.update(v)
-                        _walk(idx+1, n_vars)
+                    if subdir_multiples and subdir_multiples[idx]:
+                        for v in subdir_multiples[idx]:
+                            n_vars = vars.copy()
+                            n_vars.update(v)
+                            _walk(idx+1, n_vars)
 
                 _walk(0, {})
             else:
