@@ -23,29 +23,34 @@ def jinja_convert(filepath: str, os_env: dict):
 def load_env(filepaths, os_env):
     target_vars = os_env.copy()
 
+    non_env_filepaths = []
+
     content = ''
     for filepath in filepaths:
         filename, ext = os.path.splitext(filepath)
         if ext in dot_jinjas:
             ext = os.path.splitext(filename)[1]
             if ext != '.env':
+                non_env_filepaths.append(filepath)
                 continue
             content += '\n' + jinja_convert(filepath, os_env)
         elif ext == '.env':
             with open(filepath, encoding='utf8') as f:
                 content += '\n' + f.read()
         else:
+            non_env_filepaths.append(filepath)
             continue
 
-    vars = dict(dotenv_values(io.StringIO(content), encoding='utf8'))
-    target_vars.update(vars)
+    env_vars = dict(dotenv_values(
+        stream=io.StringIO(content), encoding='utf8'))
+    target_vars.update(env_vars)
 
-    for filepath in filepaths:
+    for filepath in non_env_filepaths:
         filename, ext = os.path.splitext(filepath)
         content = ''
         if ext in dot_jinjas:
-            content = jinja_convert(filepath, os_env)
             ext = os.path.splitext(filename)[1]
+            content = jinja_convert(filepath, env_vars)
         else:
             with open(filepath, encoding='utf8') as f:
                 content = f.read()
