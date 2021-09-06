@@ -1,22 +1,26 @@
 import os
 import io
 import click
-import jinja2
 import shutil
 import yaml
 import toml
 import re
-
+from jinja2 import Template
+from datetime import datetime
 from dotenv import dotenv_values
 
 dot_jinjas = ('.jinja', '.jinja2', '.j2')
 dot_multiples = ('.multiple.yml', '.multiple.yaml')
 
+def __timestamp():
+    return int(datetime.timestamp(datetime.now()))
 
 def jinja_convert(filepath: str, os_env: dict):
     converted = ''
     with open(filepath, encoding='utf8') as f:
-        converted = jinja2.Template(f.read()).render(os_env)
+        template = Template(f.read())
+        template.environment.globals['timestamp'] = __timestamp
+        converted = template.render(os_env)
     return converted
 
 
