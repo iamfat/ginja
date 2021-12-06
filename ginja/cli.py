@@ -111,18 +111,17 @@ def cli(env, src, dst):
     for subdir, dirnames, filenames in os.walk(src):
         for filename in filenames:
             src_file = os.path.join(subdir, filename)
-            for filename in filenames:
-                jinja_filename, ext = os.path.splitext(filename)
-                if ext.lower() in dot_jinjas:
-                    if jinja_filename in dot_multiples:
-                        multiple_vars[subdir] = yaml.load(jinja_convert(
-                            src_file, env_vars), Loader=yaml.FullLoader) or {}
-                        break
-                elif filename in dot_multiples:
-                    with open(src_file, encoding='utf8') as f:
-                        multiple_vars[subdir] = yaml.load(
-                            f, Loader=yaml.FullLoader) or {}
+            jinja_filename, ext = os.path.splitext(filename)
+            if ext.lower() in dot_jinjas:
+                if jinja_filename in dot_multiples:
+                    multiple_vars[subdir] = yaml.load(jinja_convert(
+                        src_file, env_vars), Loader=yaml.FullLoader) or {}
                     break
+            elif filename in dot_multiples:
+                with open(src_file, encoding='utf8') as f:
+                    multiple_vars[subdir] = yaml.load(
+                        f, Loader=yaml.FullLoader) or {}
+                break
 
     for subdir, dirnames, filenames in os.walk(src):
         for filename in filenames:
