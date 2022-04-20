@@ -84,28 +84,7 @@ def convert_file(src_file, dst_file, env_vars):
         click.echo('[ ] ' + dst_file)
 
 
-@click.command()
-@click.version_option()
-@click.option(
-    '-e',
-    '--env',
-    required=True,
-    type=click.Path(exists=True),
-    help='Load system environment variables before local ones.')
-@click.argument('src', nargs=1, required=True)
-@click.argument('dst', nargs=1, required=True)
-def cli(env, src, dst):
-    env_vars = {}
-    if os.path.isdir(env):
-        filepaths = []
-        for parent, dirnames, filenames in os.walk(env):
-            filepaths.extend(map(lambda f: os.path.join(
-                parent, f), filenames))
-        filepaths.sort()
-        env_vars = load_env(filepaths, os.environ)
-    elif os.path.isfile(env):
-        env_vars = load_env([env], os.environ)
-
+def convert_dir(src, dst, env_vars):
     path_var_regex = re.compile(r'\$(\w+)')
     multiple_vars = {}
     for subdir, dirnames, filenames in os.walk(src):
@@ -158,3 +137,29 @@ def cli(env, src, dst):
                 dst_file = os.path.join(
                     dst, os.path.relpath(subdir, os.path.dirname(src)), filename)
                 convert_file(src_file, dst_file, env_vars)
+
+
+@click.command()
+@click.version_option()
+@click.option(
+    '-e',
+    '--env',
+    required=True,
+    type=click.Path(exists=True),
+    help='Load system environment variables before local ones.')
+@click.argument('srcs', nargs=-1, required=True)
+@click.argument('dst', nargs=1, required=True)
+def cli(env, srcs, dst):
+    env_vars = {}
+    if os.path.isdir(env):
+        filepaths = []
+        for parent, dirnames, filenames in os.walk(env):
+            filepaths.extend(map(lambda f: os.path.join(
+                parent, f), filenames))
+        filepaths.sort()
+        env_vars = load_env(filepaths, os.environ)
+    elif os.path.isfile(env):
+        env_vars = load_env([env], os.environ)
+
+    for src in srcs:
+        convert_dir(src, dst, env_vars)
