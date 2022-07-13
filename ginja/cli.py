@@ -1,4 +1,5 @@
 import os
+import glob
 import io
 import click
 import shutil
@@ -23,6 +24,21 @@ def jinja_convert(filepath: str, os_env: dict):
         converted = template.render(os_env)
     return converted
 
+def load_env_file(filepath):
+    content = ''
+    filedir = os.path.dirname(filepath)
+    with open(filepath, encoding='utf8') as f:
+        for line in f.readlines():
+            line = line.strip()
+            if line.startswith("#<<"):
+                # include other env
+                include_filepath_pattern = line[3:].strip()
+                include_filepaths = glob.glob(include_filepath_pattern, root_dir=filedir)
+                for include_filepath in include_filepaths:
+                    content += load_env_file(os.path.realpath(os.path.join(filedir, include_filepath)))
+            elif len(line) > 0 and not line.startswith("#"):
+                content += line + "\n"
+    return content
 
 def load_env(filepaths, os_env):
     target_vars = os_env.copy()
@@ -32,15 +48,8 @@ def load_env(filepaths, os_env):
     content = ''
     for filepath in filepaths:
         filename, ext = os.path.splitext(filepath)
-        if ext in dot_jinjas:
-            ext = os.path.splitext(filename)[1]
-            if ext != '.env':
-                non_env_filepaths.append(filepath)
-                continue
-            content += '\n' + jinja_convert(filepath, os_env)
-        elif ext == '.env':
-            with open(filepath, encoding='utf8') as f:
-                content += '\n' + f.read()
+        if ext == '.env':
+            content += load_env_file(filepath)
         else:
             non_env_filepaths.append(filepath)
             continue
