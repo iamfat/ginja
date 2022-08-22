@@ -33,9 +33,9 @@ def load_env_file(filepath):
             if line.startswith("#<<"):
                 # include other env
                 include_filepath_pattern = line[3:].strip()
-                include_filepaths = glob.glob(include_filepath_pattern, root_dir=filedir)
+                include_filepaths = glob.glob(os.path.join(filedir,include_filepath_pattern))
                 for include_filepath in include_filepaths:
-                    content += load_env_file(os.path.realpath(os.path.join(filedir, include_filepath)))
+                    content += load_env_file(os.path.realpath(include_filepath))
             elif len(line) > 0 and not line.startswith("#"):
                 content += line + "\n"
     return content
