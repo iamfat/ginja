@@ -13,8 +13,10 @@ from dotenv import dotenv_values
 dot_jinjas = ('.jinja', '.jinja2', '.j2')
 dot_multiples = ('.multiple.yml', '.multiple.yaml')
 
+
 def __timestamp():
     return int(datetime.timestamp(datetime.now()))
+
 
 def jinja_convert(filepath: str, os_env: dict):
     converted = ''
@@ -23,6 +25,7 @@ def jinja_convert(filepath: str, os_env: dict):
         template.environment.globals['timestamp'] = __timestamp
         converted = template.render(os_env)
     return converted
+
 
 def load_env_file(filepath):
     content = ''
@@ -33,12 +36,14 @@ def load_env_file(filepath):
             if line.startswith("#<<"):
                 # include other env
                 include_filepath_pattern = line[3:].strip()
-                include_filepaths = glob.glob(os.path.join(filedir,include_filepath_pattern))
+                include_filepaths = glob.glob(
+                    os.path.join(filedir, include_filepath_pattern))
                 for include_filepath in include_filepaths:
                     content += load_env_file(os.path.realpath(include_filepath))
             elif len(line) > 0 and not line.startswith("#"):
                 content += line + "\n"
     return content
+
 
 def load_env(filepaths, os_env):
     target_vars = os_env.copy()

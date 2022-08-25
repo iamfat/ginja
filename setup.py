@@ -35,7 +35,7 @@ if sys.argv[-1] == 'publish':
     sys.exit()
 
 required = [
-    'python-dotenv>=0.13.0',
+    'ginja-dotenv>=0.13.0',
     'click>=6.7',
     'Jinja2',
     'toml',
