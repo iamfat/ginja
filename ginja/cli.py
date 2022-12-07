@@ -6,25 +6,46 @@ import shutil
 import yaml
 import toml
 import re
-from jinja2 import Template
+from jinja2 import Template, Environment, FunctionLoader
 from datetime import datetime
 from dotenv import dotenv_values
 
 dot_jinjas = ('.jinja', '.jinja2', '.j2')
 dot_multiples = ('.multiple.yml', '.multiple.yaml')
 
+class JinjaFile(object):
+    def __init__(self, file, vars):
+        self.dir = os.path.dirname(file)
+        self.name = os.path.basename(file)
+        self.vars = vars
+        self.env = Environment(loader=FunctionLoader(
+            lambda n: JinjaFile.current.load(n)))
+        self.env.globals['timestamp'] = self.timestamp
 
-def __timestamp():
-    return int(datetime.timestamp(datetime.now()))
+    def timestamp(self):
+        return int(datetime.timestamp(datetime.now()))
+
+    def convert(self):
+        template = self.env.get_template(self.name)
+        return template.render(self.vars)
+
+    def load(self, name):
+        file = os.path.join(self.dir, name)
+        if not os.path.exists(file):
+            for ext in dot_jinjas:
+                if os.path.exists(file + ext):
+                    file = file + ext
+                    break
+        if os.path.exists(file):
+            with open(file, encoding='utf8') as f:
+                return f.read()
+        return ''
 
 
 def jinja_convert(filepath: str, os_env: dict):
-    converted = ''
-    with open(filepath, encoding='utf8') as f:
-        template = Template(f.read())
-        template.environment.globals['timestamp'] = __timestamp
-        converted = template.render(os_env)
-    return converted
+    jf = JinjaFile(filepath, os_env)
+    JinjaFile.current = jf
+    return jf.convert()
 
 
 def load_env_file(filepath):
